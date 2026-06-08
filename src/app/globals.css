@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Advansure Design-Tokens.
+  Das Produkt ist dunkel (vgl. Startscreen-Mockup): tiefes Anthrazit als Fläche,
+  warmes Amber als primärer Call-to-Action ("Schaden melden"), Smaragd als
+  Vertrauens-/Versichert-Akzent. Werte als HSL, damit shadcn/ui sie konsumiert.
+*/
+@layer base {
+  :root {
+    --background: 240 6% 5%;
+    --foreground: 0 0% 98%;
+
+    --card: 240 5% 9%;
+    --card-foreground: 0 0% 98%;
+
+    --primary: 41 86% 58%; /* Amber – Schaden-melden-CTA */
+    --primary-foreground: 240 10% 6%;
+
+    --secondary: 240 4% 14%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 4% 14%;
+    --muted-foreground: 240 5% 65%;
+
+    --accent: 158 64% 42%; /* Smaragd – "versichert bis" */
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+
+    /*
+      Semantische Status-Töne für Avery-Chat & Foto-Walk.
+      success = Smaragd (deckt sich mit --accent: „erkannt/bestätigt"),
+      warning = Amber, info = Sky. Im Dark-Theme leicht angehoben für Kontrast.
+    */
+    --success: 158 64% 44%;
+    --success-foreground: 0 0% 98%;
+    --warning: 41 86% 58%;
+    --warning-foreground: 240 10% 6%;
+    --info: 201 69% 58%;
+    --info-foreground: 240 10% 6%;
+
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
+    --ring: 41 86% 58%;
+
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    /* verhindert ungewolltes Zoomen/Bouncen auf Mobilgeräten */
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    /* sichere Bereiche für Notch / Home-Indicator auf Mobilgeräten */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+      env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  /* Inputs mit ≥16px Schrift, damit iOS beim Fokus nicht automatisch zoomt. */
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+@layer utilities {
+  /* Vollbild-Layer (Kamera/Foto-Walk) – respektiert Notch & Home-Indicator,
+     unabhängig vom Body-Padding, da fixed positioniert. */
+  .safe-area-inset {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  /* Eigene Scrollbar im Chat dezent halten. */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 9999px;
+  }
+}
