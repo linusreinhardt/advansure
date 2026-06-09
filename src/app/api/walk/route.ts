@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { isGeminiEnabled } from "@/lib/ai/config";
+import { isGeminiEnabled, logGeminiStatusOnce } from "@/lib/ai/config";
 import { analyzeWalkVideo } from "@/lib/ai/vision";
 import { mockAssessment, type AnalyzeInput } from "@/lib/walk/mock-assessment";
 import type { ClaimType } from "@/lib/claim/types";
@@ -57,18 +57,22 @@ export async function POST(request: Request) {
     capturedRoomLabels,
   };
 
+  logGeminiStatusOnce();
   if (isGeminiEnabled()) {
     try {
       const base64 = Buffer.from(await video.arrayBuffer()).toString("base64");
-      const mimeType = video.type || "video/webm";
+      // MediaRecorder liefert oft "video/webm;codecs=vp8,opus" – Gemini akzeptiert
+      // nur den Basis-MIME-Typ, daher den Codec-Zusatz entfernen.
+      const mimeType = (video.type || "video/webm").split(";")[0].trim();
       const assessment = await analyzeWalkVideo(
         { claimType, iteration, capturedRoomLabels, durationMs },
         base64,
         mimeType,
       );
       return NextResponse.json(assessment);
-    } catch {
+    } catch (err) {
       // TU-04: KI nicht erreichbar/ungültig → Mock, damit der Loop weiterläuft.
+      console.error("[ai] /api/walk: Gemini-Fehler, Fallback auf Mock:", err);
       return NextResponse.json(mockAssessment(input));
     }
   }

@@ -20,3 +20,20 @@ export function geminiModel(): string {
 export function isGeminiEnabled(): boolean {
   return Boolean(geminiApiKey());
 }
+
+/**
+ * Loggt einmalig pro Prozess, ob die KI aktiv ist – hilft beim Einrichten
+ * (sichtbar in der `npm run dev`-Konsole), ohne jede Anfrage zuzuspammen.
+ */
+let statusLogged = false;
+export function logGeminiStatusOnce(): void {
+  if (statusLogged) return;
+  statusLogged = true;
+  if (isGeminiEnabled()) {
+    console.info(`[ai] Gemini aktiv (Modell: ${geminiModel()})`);
+  } else {
+    console.warn(
+      "[ai] GOOGLE_AI_STUDIO_API_KEY nicht gesetzt – lokale Fallbacks (Engine/Mock) aktiv.",
+    );
+  }
+}

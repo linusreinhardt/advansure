@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { respond, type AveryState } from "@/lib/avery/engine";
-import { isGeminiEnabled } from "@/lib/ai/config";
+import { isGeminiEnabled, logGeminiStatusOnce } from "@/lib/ai/config";
 import { runDialog } from "@/lib/ai/dialog";
 import type { DialogTurn } from "@/lib/ai/prompt-builder";
 
@@ -49,6 +49,7 @@ export async function POST(request: Request) {
     );
   }
 
+  logGeminiStatusOnce();
   const state = parsed.data.state as AveryState;
   const history = (parsed.data.history ?? []) as DialogTurn[];
   const message = parsed.data.message;
@@ -57,8 +58,9 @@ export async function POST(request: Request) {
     try {
       const reply = await runDialog(state, history, message);
       return NextResponse.json(reply);
-    } catch {
+    } catch (err) {
       // TU-02: KI nicht erreichbar/Antwort nicht parsbar → lokale Engine.
+      console.error("[ai] /api/dialog: Gemini-Fehler, Fallback auf Engine:", err);
       return NextResponse.json(respond(state, message));
     }
   }
