@@ -50,10 +50,17 @@ wiederhergestellt (FA-02 „Dialog-Persistenz").
 |---|---|
 | `claim/types.ts` | Domänen-Typen (ClaimType, SeverityLevel, RoomDamage, DamageAssessment …) |
 | `claim/case-number.ts` | Lokale Vorgangsnummer `ADV-JJJJ-XXXX` (FA-07) |
-| `avery/engine.ts` | Scriptbasierte Dialog-Engine + Intent-Heuristik (FA-02) |
-| `avery/avery-client.ts` | Transport-Seam → tauscht später gegen `POST /api/dialog` (TU-02) |
+| `avery/engine.ts` | Lokale Dialog-Engine + Intent-Heuristik (Fallback, FA-02) |
+| `avery/avery-client.ts` | Ruft `POST /api/dialog`; Offline-Fallback auf die lokale Engine |
 | `walk/use-media-recorder.ts` | MediaRecorder-Hook: Berechtigung, Aufnahme, Auto-Stop (TU-03) |
-| `walk/analyze.ts` | Foto-Walk-Analyse (Mock) → tauscht später gegen `POST /api/walk` (TU-04) |
+| `walk/analyze.ts` | Lädt Video an `POST /api/walk`; Offline-Fallback auf Mock |
+| `walk/mock-assessment.ts` | Deterministische PoC-Einschätzung (Fallback ohne KI) |
+| `ai/config.ts` | Weiche KI-Konfiguration (Key optional, Modellwahl) |
+| `ai/gemini.ts` | Gemini-Client-Wrapper: Timeout + Retry/Backoff |
+| `ai/prompt-builder.ts` | System-Prompts + Content-/Video-Assembly |
+| `ai/schemas.ts` | Zod- + responseSchema-Definitionen der KI-Antworten |
+| `ai/dialog.ts` | Gemini-Dialog (TU-02) → `AveryReply` |
+| `ai/vision.ts` | Gemini-Video-Analyse (TU-04) → `DamageAssessment` |
 | `valuation/rates.ts` | Pauschalsätze & Default-Raumgrößen (TU-05) |
 | `personas.ts` | Demo-Personas Leon/Robert/Julia (FA-01) |
 
@@ -80,27 +87,35 @@ wiederhergestellt (FA-02 „Dialog-Persistenz").
 | FA-05 Abbruch | Bestätigungsdialog, Rückkehr in den Chat |
 | FA-06 Berechtigung verweigert | Verständliche Erklärung + „neu anfragen" / „im Chat beschreiben" |
 | FA-07 Absenden & Vorgangsnummer | Zusammenfassung → lokale Vorgangsnummer + Bestätigung |
+| TU-02 KI-Dialog | Gemini beantwortet den Dialog strukturiert; Engine als Fallback |
 | TU-03 Videoaufnahme | MediaRecorder (WebM/VP8/VP9 → MP4-Fallback), Auto-Stop 15 s, Verwerfen < 2 s |
+| TU-04 Video-Analyse | Gemini-Vision analysiert das Inline-Video; Mock als Fallback |
 
-## Scope-Grenzen / Integrations-Seams
+## KI-Integration (AP6)
 
-Klar markierte Andockpunkte für die Folgepakete – nichts davon erfordert
-UI-Änderungen:
+Der Foto-Walk-Loop und der Avery-Dialog laufen über **Google AI Studio (Gemini)**:
 
-- **KI-Dialog (AP6 / TU-02):** `lib/avery/avery-client.ts` → `POST /api/dialog`
-  (Stub vorhanden, nutzt aktuell dieselbe Engine).
-- **Video-Analyse (AP6 / TU-04):** `lib/walk/analyze.ts` → `POST /api/walk`
-  (Stub vorhanden, liefert Mock-`DamageAssessment`).
-- **Video-Upload (TU-03):** in `claim-flow.tsx` (`handleCaptured`) ist der
-  aufgenommene Blob referenziert; hier folgt der Supabase-Storage-Upload
-  (`walks/{walk_id}/{iteration}.webm`).
+- Ist `GOOGLE_AI_STUDIO_API_KEY` gesetzt, übernimmt Gemini den Dialog (TU-02) und
+  die Video-Analyse (TU-04). Modell konfigurierbar über `GEMINI_MODEL`
+  (Default `gemini-2.5-flash`).
+- **Graceful Degradation:** Ohne Key – oder bei KI-Fehler/Offline – fällt jede
+  Ebene sauber zurück: Route → lokale Engine bzw. Mock; Client → lokaler Fallback
+  (TU-02 Alternativabläufe 1/2). Die App bleibt dadurch immer lauffähig.
+- Der **Foto-Walk-Loop** (FA-03/FA-04) wird so von der echten KI gesteuert:
+  Gemini liefert `satisfied` / `next_request`; bei unzureichendem Material fragt
+  Avery gezielt nach, sonst wird der Raum übernommen.
+- Das Video wird als **Inline-Daten** an Gemini übergeben (geeignet für kurze
+  Clips ≤ ~15 s). Der API-Key bleibt serverseitig.
+
+## Offene Folgepakete
+
+- **Video-Persistenz (TU-03/Supabase-Backend):** In `api/walk` wird das Video
+  aktuell inline analysiert; die dauerhafte Ablage in Supabase Storage
+  (`walks/{walk_id}/{iteration}.webm`) gehört zum Supabase-Backend-Paket.
 - **Persistenz/Vorgangsnummer (TU-06):** `case-number.ts` ist clientseitig;
   später ersetzt durch die atomare Postgres-Sequenz.
 - **Mehrraum-Dokumentation (AP7):** Korrektur/Detailbearbeitung pro Raum baut auf
   der Result-/Summary-Ansicht auf.
-
-Der Schadensgrad und die erkannten Räume sind im PoC **gemockt** (deterministisch,
-am Pitch-Deck orientiert) und im UI als KI-Einschätzung gekennzeichnet.
 
 ## Demo & Test
 
@@ -114,9 +129,12 @@ npm run dev        # http://localhost:3000
 4. Avery zeigt den erkannten Raum (Schadensgrad + vorläufige Höhe) → „Übernehmen".
 5. „Zusammenfassung ansehen" → „Schaden absenden" → Vorgangsnummer.
 
+**KI aktivieren:** `GOOGLE_AI_STUDIO_API_KEY` in `.env.local` setzen → Gemini
+steuert Dialog & Analyse. Ohne Key läuft der identische Flow mit Engine/Mock.
+
 **Hinweis Kamera:** `getUserMedia` benötigt einen sicheren Kontext
 (`localhost` oder HTTPS). Tipp für die FA-04-Iteration: sehr kurz (< 4 s) filmen,
-dann fordert Avery eine erneute Aufnahme an.
+dann fordert die KI/der Mock eine erneute Aufnahme an.
 ```bash
 npm run build && npm run start   # inkl. PWA / Service Worker
 ```

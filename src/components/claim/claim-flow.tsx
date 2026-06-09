@@ -242,12 +242,12 @@ export function ClaimFlow({ persona = getPersona() }: ClaimFlowProps) {
         return;
       }
 
-      // Normaler Dialog – askAvery hat eigene Latenz, daher thinkMs = 0.
-      await deliver(askAvery(averyState, text), 0);
+      // Normaler Dialog – askAvery übernimmt KI-Aufruf/Fallback inkl. Denkzeit.
+      await deliver(askAvery(averyState, text, messages), 0);
     },
     // commitRoom unten via useCallback referenziert
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [appendDrafts, deliver, say, phase, textRoom, averyState],
+    [appendDrafts, deliver, say, phase, textRoom, averyState, messages],
   );
 
   const handleAction = useCallback(
@@ -298,12 +298,16 @@ export function ClaimFlow({ persona = getPersona() }: ClaimFlowProps) {
       const iteration = roomIteration + 1;
       setRoomIteration(iteration);
 
-      const assessment = await analyzeCapture({
-        claimType: averyState.draft.claimType ?? "leitungswasser",
-        roomIndex: averyState.draft.rooms.length,
-        iteration,
-        durationMs,
-      });
+      const assessment = await analyzeCapture(
+        {
+          claimType: averyState.draft.claimType ?? "leitungswasser",
+          roomIndex: averyState.draft.rooms.length,
+          iteration,
+          durationMs,
+          capturedRoomLabels: averyState.draft.rooms.map((r) => r.damage.roomLabel),
+        },
+        blob,
+      );
 
       // FA-04: Dokumentation reicht nicht → gezielte Folgeaufforderung, neue Iteration.
       if (!assessment.satisfied || !assessment.damage_assessment) {

@@ -5,9 +5,10 @@ Dialoggeführte, KI-gestützte Schadenmeldung für die Hausratversicherung
 
 Installierbare, offline-fähige Next.js-14-PWA mit der Ordnerstruktur der
 3-Schichten-Architektur aus dem Konzept. Aufbauend auf dem Grundgerüst und dem
-Design-System sind die **Avery Chat-UI & das Onboarding (AP4)** sowie die
-**Kamera & Video-Capture (AP5)** umgesetzt – inklusive des durchgängigen
-Schadenflows von der Beschreibung über den Foto-Walk bis zur Vorgangsnummer.
+Design-System sind die **Avery Chat-UI & das Onboarding (AP4)**, die
+**Kamera & Video-Capture (AP5)** sowie die **KI-Integration des Foto-Walk-Loops
+(AP6, Google AI Studio / Gemini)** umgesetzt – ein durchgängiger Schadenflow von
+der Beschreibung über den KI-gestützten Foto-Walk bis zur Vorgangsnummer.
 
 > Details zu diesen Features: **[`docs/AVERY_FOTOWALK.md`](docs/AVERY_FOTOWALK.md)**.
 
@@ -20,12 +21,15 @@ Schadenflows von der Beschreibung über den Foto-Walk bis zur Vorgangsnummer.
 - **Foto-Walk (FA-03–FA-06)** – geführte Videoaufnahme pro Raum über die
   MediaRecorder-API (Auto-Stop nach 15 s), Iteration bei zu kurzer Aufnahme,
   Abbruch mit Bestätigung und Text-Fallback bei verweigerter Kamera.
+- **KI-Integration (AP6, TU-02/TU-04)** – Gemini steuert den Avery-Dialog und
+  analysiert das Foto-Walk-Video (Schadensgrad, „ausreichend?"). Aktiv, sobald
+  `GOOGLE_AI_STUDIO_API_KEY` gesetzt ist; ohne Key/offline greift ein sauberer
+  Fallback (lokale Engine bzw. Mock), die App bleibt immer lauffähig.
 - **Zusammenfassung & Bestätigung (FA-07)** – vorläufige Schadenshöhe nach
   Pauschalmethode und lokale Vorgangsnummer `ADV-JJJJ-XXXX`.
 
-Die KI-Analyse (Gemini, AP6) und die Persistenz (Supabase, TU-03/TU-06) sind über
-klar markierte Seams vorbereitet; im PoC arbeitet die Erkennung mit einem
-deterministischen Mock (siehe Doku).
+Die Video-Persistenz in Supabase Storage (TU-03) und die serverseitige
+Vorgangsnummer (TU-06) folgen mit dem Supabase-Backend-Paket.
 
 ## Stack
 
@@ -71,7 +75,7 @@ src/
 │   └── api/                  Schicht 2 – Route Handler (Gateway + Services)
 │       ├── health/           Lebenszeichen
 │       ├── dialog/           Avery-Dialog (TU-02, PoC-Stub)
-│       └── walk/             Foto-Walk-Analyse (TU-04, PoC-Stub)
+│       └── walk/             Video-Upload & Foto-Walk-Analyse (TU-04)
 ├── components/
 │   ├── ui/                   Bausteine (button, card, badge, textarea)
 │   ├── avery/                Chat-UI (AP4)
@@ -84,11 +88,11 @@ src/
     ├── env.ts · utils.ts     Env-Validierung, cn()-Helper
     ├── personas.ts           Demo-Personas (FA-01)
     ├── claim/                Domänen-Typen, Vorgangsnummer
-    ├── avery/                Dialog-Engine + Transport-Seam (TU-02)
-    ├── walk/                 MediaRecorder-Hook + Analyse-Seam (TU-03/04)
+    ├── avery/                Dialog-Engine (Fallback) + /api/dialog-Client (TU-02)
+    ├── walk/                 MediaRecorder-Hook, /api/walk-Client, Mock (TU-03/04)
+    ├── ai/                   Gemini-Anbindung: Client, Prompts, Schemas (AP6)
     ├── valuation/            Pauschalmethode/Sätze (TU-05)
-    ├── db/                   Supabase/Drizzle (folgt)
-    └── ai/                   Google AI Studio / Prompt-Builder (folgt)
+    └── db/                   Supabase/Drizzle (folgt)
 ```
 
 ## Deployment (Vercel)
@@ -100,11 +104,10 @@ src/
 
 ## Nächste Schritte im Projektstrukturplan
 
-1. **KI-Anbindung (AP6 / TU-02, TU-04)**: Google AI Studio anbinden – die Seams
-   liegen in `lib/avery/avery-client.ts` und `lib/walk/analyze.ts` bzw. den
-   Stubs `api/dialog` und `api/walk`.
-2. **Supabase-Backend (TU-01, TU-03, TU-06)**: Tabellen `claims`, `rooms`,
+1. **Supabase-Backend (TU-01, TU-03, TU-06)**: Tabellen `claims`, `rooms`,
    `conversations`, `audit_logs` + Storage-Bucket, Seed-Daten (Leon, Robert,
-   Julia); Video-Upload und Vorgangsnummer serverseitig.
-3. **Mehrraum-Dokumentation (AP7)**: Raumkorrektur und Detailbearbeitung auf
+   Julia); Video dauerhaft ablegen und Vorgangsnummer serverseitig vergeben.
+2. **Mehrraum-Dokumentation (AP7)**: Raumkorrektur und Detailbearbeitung auf
    Basis der Result-/Summary-Ansicht.
+3. **Feinschliff KI**: Prompt-Tuning, Persistenz des Dialogverlaufs in
+   `conversations`, Audit-Logging der KI-Aufrufe.
