@@ -24,7 +24,7 @@ export default async function UsersPage() {
       <header className="topbar">
         <div className="topbar-inner container">
           <div className="brand">
-            <span className="brand-mark">A</span>
+            <span className="brand-mark">L</span>
             <span className="brand-name">Benutzerverwaltung</span>
           </div>
           <Link href="/" className="btn btn-ghost">

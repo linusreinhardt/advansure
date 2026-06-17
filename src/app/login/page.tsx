@@ -5,8 +5,8 @@ export default function LoginPage() {
     <div className="auth-shell">
       <div className="auth-card card">
         <div className="brand brand-lg">
-          <span className="brand-mark">A</span>
-          <span className="brand-name">Advansure</span>
+          <span className="brand-mark">L</span>
+          <span className="brand-name">LinoHub</span>
         </div>
         <h1 className="auth-title">Anmelden</h1>
         <p className="muted">Bitte mit deinen Zugangsdaten einloggen.</p>

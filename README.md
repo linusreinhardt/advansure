@@ -1,4 +1,4 @@
-# Advansure
+# LinoHub
 
 Interner App-Launcher mit Login, Rollen (`admin` / `user`) und geschütztem
 Center-Screen. Gebaut mit **Next.js (App Router, TypeScript)** und **Supabase**.
@@ -17,7 +17,7 @@ Center-Screen. Gebaut mit **Next.js (App Router, TypeScript)** und **Supabase**.
 ## Projektstruktur
 
 ```
-advansure/
+linohub/
 ├── middleware.ts                  # Auth-/Rollen-Guard (leitet um)
 ├── next.config.ts
 ├── supabase/

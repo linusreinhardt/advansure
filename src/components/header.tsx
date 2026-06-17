@@ -6,8 +6,8 @@ export function Header({ email, role }: { email: string; role: Role }) {
     <header className="topbar">
       <div className="topbar-inner container">
         <div className="brand">
-          <span className="brand-mark">A</span>
-          <span className="brand-name">Advansure</span>
+          <span className="brand-mark">L</span>
+          <span className="brand-name">LinoHub</span>
         </div>
         <div className="user-area">
           <div className="user-meta">

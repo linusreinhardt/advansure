@@ -1,5 +1,5 @@
 -- =====================================================================
---  Advansure – Initiale Migration
+--  LinoHub – Initiale Migration
 --  - Tabelle public.profiles (1:1 zu auth.users) mit Rolle
 --  - Hilfsfunktion is_admin() (umgeht RLS-Rekursion)
 --  - Row Level Security + Policies
